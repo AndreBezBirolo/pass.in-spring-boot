@@ -2,6 +2,7 @@ package andrebirolo.com.passin.services;
 
 import andrebirolo.com.passin.domain.attendee.Attendee;
 import andrebirolo.com.passin.domain.event.Event;
+import andrebirolo.com.passin.domain.event.exceptions.EventNotFoundException;
 import andrebirolo.com.passin.dto.event.EventIdDTO;
 import andrebirolo.com.passin.dto.event.EventRequestDTO;
 import andrebirolo.com.passin.dto.event.EventResponseDTO;
@@ -23,7 +24,7 @@ public class EventService {
     public EventResponseDTO getEventDetail(String eventId) {
         Event event = this.eventRepository
                 .findById(eventId)
-                .orElseThrow(() -> new RuntimeException("Event not found with id: " + eventId));
+                .orElseThrow(() -> new EventNotFoundException("Event not found with id: " + eventId));
         List<Attendee> attendeeList = this.attendeeRepository.findByEventId(eventId);
         return new EventResponseDTO(event, attendeeList.size());
     }
