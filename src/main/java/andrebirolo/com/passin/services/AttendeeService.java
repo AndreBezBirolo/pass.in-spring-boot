@@ -2,13 +2,17 @@ package andrebirolo.com.passin.services;
 
 import andrebirolo.com.passin.domain.attendee.Attendee;
 import andrebirolo.com.passin.domain.attendee.exceptions.AttendeeAlreadyRegisteredException;
+import andrebirolo.com.passin.domain.attendee.exceptions.AttendeeNotFoundException;
 import andrebirolo.com.passin.domain.checkin.CheckIn;
+import andrebirolo.com.passin.dto.attendee.AttendeeBadgeDTO;
+import andrebirolo.com.passin.dto.attendee.AttendeeBadgeResponseDTO;
 import andrebirolo.com.passin.dto.attendee.AttendeeDetails;
 import andrebirolo.com.passin.dto.attendee.AttendeeListResponseDTO;
 import andrebirolo.com.passin.repositories.AttendeeRepository;
 import andrebirolo.com.passin.repositories.CheckinRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -45,8 +49,16 @@ public class AttendeeService {
         }
     }
 
-    public Attendee registerAttendee(Attendee newAttendee) {
+    public void registerAttendee(Attendee newAttendee) {
         this.attendeeRepository.save(newAttendee);
-        return newAttendee;
+    }
+
+    public AttendeeBadgeResponseDTO getAttendeeBadge(String attendeeId, UriComponentsBuilder uriComponentsBuilder) {
+        Attendee attendee = this.attendeeRepository.findById(attendeeId)
+                .orElseThrow(() -> new AttendeeNotFoundException("Attendee not found"));
+
+        var uri = uriComponentsBuilder.path("/attendee/{id}/check-in").buildAndExpand(attendee.getId()).toUriString();
+
+        return new AttendeeBadgeResponseDTO(new AttendeeBadgeDTO(attendee.getName(), attendee.getEmail(), uri, attendee.getEvent().getId()));
     }
 }
