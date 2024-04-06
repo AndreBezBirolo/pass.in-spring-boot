@@ -9,7 +9,6 @@ import andrebirolo.com.passin.dto.attendee.AttendeeBadgeResponseDTO;
 import andrebirolo.com.passin.dto.attendee.AttendeeDetails;
 import andrebirolo.com.passin.dto.attendee.AttendeeListResponseDTO;
 import andrebirolo.com.passin.repositories.AttendeeRepository;
-import andrebirolo.com.passin.repositories.CheckinRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -22,7 +21,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AttendeeService {
     private final AttendeeRepository attendeeRepository;
-    private final CheckinRepository checkinRepository;
+    private final CheckInService checkInService;
 
     public List<Attendee> getAllAttendeesFromEvent(String eventId) {
         return this.attendeeRepository.findByEventId(eventId);
@@ -33,7 +32,7 @@ public class AttendeeService {
 
         List<AttendeeDetails> attendeeDetailsList = attendees.stream()
                 .map(attendee -> {
-                    Optional<CheckIn> checkIn = this.checkinRepository.findByAttendeeId(attendee.getId());
+                    Optional<CheckIn> checkIn = this.checkInService.getCheckIn(attendee.getId());
                     LocalDateTime checkedInAt = checkIn.isPresent() ? checkIn.get().getCreatedAt() : null;
                     return new AttendeeDetails(attendee.getId(), attendee.getName(), attendee.getEmail(), attendee.getCreatedAt(), checkedInAt);
                 })
@@ -54,11 +53,21 @@ public class AttendeeService {
     }
 
     public AttendeeBadgeResponseDTO getAttendeeBadge(String attendeeId, UriComponentsBuilder uriComponentsBuilder) {
-        Attendee attendee = this.attendeeRepository.findById(attendeeId)
-                .orElseThrow(() -> new AttendeeNotFoundException("Attendee not found"));
+        Attendee attendee = getAttendee(attendeeId);
 
         var uri = uriComponentsBuilder.path("/attendee/{id}/check-in").buildAndExpand(attendee.getId()).toUriString();
 
         return new AttendeeBadgeResponseDTO(new AttendeeBadgeDTO(attendee.getName(), attendee.getEmail(), uri, attendee.getEvent().getId()));
+    }
+
+    public void checkInAttendee(String attendeeId) {
+        Attendee attendee = getAttendee(attendeeId);
+        this.checkInService.registerCheckIn(attendee);
+
+    }
+
+    private Attendee getAttendee(String attendeeId) {
+        return this.attendeeRepository.findById(attendeeId)
+                .orElseThrow(() -> new AttendeeNotFoundException("Attendee not found"));
     }
 }
